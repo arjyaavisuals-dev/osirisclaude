@@ -1373,25 +1373,7 @@ export default function Dashboard() {
         {spaceWeather && <span className="hidden lg:inline" title={spaceWeather.kp_index == null ? 'Geomagnetic Storm Index — no reading from NOAA' : `Geomagnetic Storm Index — Kp${spaceWeather.kp_index}`}>SOLAR: <span style={{ color: spaceWeather.storm_color, fontWeight: 700 }}>{spaceWeather.kp_index == null ? 'N/A' : `Kp${spaceWeather.kp_index}`}</span></span>}
 
         <span className="text-[11px] font-bold tracking-[0.2em] text-[var(--text-muted)] opacity-50">V.4.1</span>
-        
-        <TokenPanel />
-
-        <SupportMenu />
       </motion.div>
-
-      {/* ── MOBILE: Compact top status ── */}
-      {/* The route planner claims the top of a phone screen; leaving this in
-          place would put the support badge underneath the destination field. */}
-      {isMobile && !showDirections && !navSession && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 2.5 }} className="absolute top-3 right-3 z-[200] pointer-events-auto flex flex-col items-end gap-1.5">
-          <div className="flex items-center gap-2">
-            <TokenPanel />
-            <SupportMenu compact />
-          </div>
-        </motion.div>
-      )}
-
-
 
       {/* ── NEW SIDEBAR (Root Level) ── */}
       {showLayers && !isMobile && <LayerPanel {...terrainPanelProps} data={data} activeLayers={activeLayers} setActiveLayers={setActiveLayers} theme={osirisTheme} setTheme={setOsirisTheme} capabilities={capabilities} />}
