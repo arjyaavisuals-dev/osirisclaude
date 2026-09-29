@@ -43,6 +43,7 @@ import { fetchGeorgiaCameras } from './georgia';
 import { fetchNorthCarolinaCameras } from './northcarolina';
 import { fetchArizonaCameras } from './arizona';
 import { fetchTexasCameras } from './texas';
+import { fetchCaliforniaCameras } from './california';
 import { fetchEastAsiaCameras, fetchSeAsiaCameras, fetchWestAsiaCameras } from './opencctv';
 import {
   fetchLatamLiveCameras,
@@ -96,36 +97,6 @@ async function fetchWSDOTCameras(): Promise<any[]> {
       feed_url: cam.ImageURL || '', source: 'WSDOT',
     })).filter((c: any) => c.lat && c.lng && c.feed_url);
   } catch (e) { return []; }
-}
-
-// ── US-WEST: Caltrans California ──
-async function fetchCaltransCameras(): Promise<any[]> {
-  try {
-    const res = await stealthFetch('https://caltrans-gis.dot.ca.gov/arcgis/rest/services/CHhighway/CCTV/FeatureServer/0/query?where=1%3D1&outFields=*&f=json', { signal: AbortSignal.timeout(12000) });
-    if (!res.ok) return [];
-    const data = await res.json();
-    const cams = [];
-    for (const feature of (data?.features || [])) {
-      const p = feature.attributes;
-      const lat = p.latitude;
-      const lng = p.longitude;
-      const url = p.currentImageURL;
-      if (!lat || !lng || !url) continue;
-      cams.push({
-        id: `cal-${p.OBJECTID}`,
-        lat,
-        lng,
-        name: p.locationName || 'Caltrans',
-        city: p.nearbyPlace || p.county || 'California',
-        country: 'US',
-        feed_url: url,
-        source: 'Caltrans'
-      });
-    }
-    return cams;
-  } catch (e) {
-    return [];
-  }
 }
 
 /**
@@ -481,7 +452,7 @@ type RegionFetcher = () => Promise<any[]>;
 const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'middle-east': fetchMiddleEastCameras,
   'uk': fetchTfLCameras,
-  'us-west': async () => { const [w, c] = await Promise.all([fetchWSDOTCameras(), fetchCaltransCameras()]); return [...w, ...c]; },
+  'us-west': fetchWSDOTCameras,
   'us-east': fetchUSEastCameras,
   'us-central': fetchUSCentralCameras,
   'canada': fetchCanadaCameras,
@@ -524,6 +495,7 @@ const RAW_REGION_FETCHERS: Record<string, RegionFetcher> = {
   'northcarolina': fetchNorthCarolinaCameras,
   'arizona': fetchArizonaCameras,
   'texas': fetchTexasCameras,
+  'california': fetchCaliforniaCameras,
   'eastasia': fetchEastAsiaCameras,
   'seasia': fetchSeAsiaCameras,
   'westasia': fetchWestAsiaCameras,
@@ -789,6 +761,8 @@ function getRegionsForBounds(lat: number, lng: number, radius: number): string[]
   if (lat > 24 && lat < 49 && lng > -85 && lng < -66) regions.push('us-east');
   // US-West
   if (lat > 24 && lat < 49 && lng > -125 && lng < -100) regions.push('us-west');
+  // California (Caltrans CWWP2) — explicit, since us-west's WSDOT source only covers Washington
+  if (lat > 32.4 && lat < 42.1 && lng > -124.5 && lng < -114.0) regions.push('california');
   // Utah (UDOT) — explicit, since us-west only covers WA + CA
   if (lat > 36.9 && lat < 42.1 && lng > -114.2 && lng < -108.9) regions.push('utah');
   // Oregon (ODOT) — explicit, since us-west only covers WA + CA
