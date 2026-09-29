@@ -33,6 +33,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
+  /* How many times this HLS instance has tried to self-heal from a fatal
+     error. Reset whenever a fresh Hls() is created — a camera that keeps
+     failing after real recovery attempts is actually down, not blipping,
+     and should fall through to the FEED UNAVAILABLE state rather than loop
+     forever. */
+  const hlsRecoveryAttemptsRef = useRef(0);
+  const MAX_HLS_RECOVERY_ATTEMPTS = 3;
 
   const externalFeedUrl = camera?.external_url || camera?.feed_url;
   const hostedOffPlatform = isHostedOffPlatform(camera);
@@ -103,12 +110,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
     if (streamType === 'hls' && camera.stream_url) {
       if (Hls.isSupported() && videoRef.current) {
         const hls = new Hls({
-          liveSyncDurationCount: 2,
-          maxBufferLength: 4,
-          maxMaxBufferLength: 8,
+          liveSyncDurationCount: 3,
+          maxBufferLength: 8,
+          maxMaxBufferLength: 12,
           enableWorker: true,
           lowLatencyMode: true,
         });
+        hlsRecoveryAttemptsRef.current = 0;
         hlsRef.current = hls;
         hls.loadSource(camera.stream_url);
         hls.attachMedia(videoRef.current);
@@ -116,8 +124,32 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
           setLoading(false);
           videoRef.current?.play().catch(() => {});
         });
+        /* A live traffic-camera encoder stalling or dropping a segment for a
+           moment is routine, not exceptional — HLS.js's own recommended
+           pattern is to try to self-heal a fatal error before giving up on
+           it. Without this, the first blip any camera has left the feed
+           frozen on FEED UNAVAILABLE until someone clicked RETRY by hand. */
         hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) setError(true);
+          if (!data.fatal) return;
+          if (hlsRecoveryAttemptsRef.current >= MAX_HLS_RECOVERY_ATTEMPTS) {
+            setError(true);
+            return;
+          }
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hlsRecoveryAttemptsRef.current += 1;
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hlsRecoveryAttemptsRef.current += 1;
+              hls.recoverMediaError();
+              break;
+            default:
+              // Not a network or media error HLS.js knows how to recover
+              // from — the instance is unusable, so let it be replaced.
+              setError(true);
+              break;
+          }
         });
       } else if (videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
         videoRef.current.src = camera.stream_url;
