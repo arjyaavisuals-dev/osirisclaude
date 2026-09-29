@@ -102,7 +102,13 @@ export default function CameraViewer({ camera, onClose, onLocate }: CameraViewer
 
     if (streamType === 'hls' && camera.stream_url) {
       if (Hls.isSupported() && videoRef.current) {
-        const hls = new Hls({ enableWorker: false });
+        const hls = new Hls({
+          liveSyncDurationCount: 2,
+          maxBufferLength: 4,
+          maxMaxBufferLength: 8,
+          enableWorker: true,
+          lowLatencyMode: true,
+        });
         hlsRef.current = hls;
         hls.loadSource(camera.stream_url);
         hls.attachMedia(videoRef.current);
