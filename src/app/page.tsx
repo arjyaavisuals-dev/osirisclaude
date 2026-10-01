@@ -25,6 +25,7 @@ import GlobalStatusBar from '@/components/GlobalStatusBar';
 import LiveAlerts from '@/components/LiveAlerts';
 import WorldRemote from '@/components/WorldRemote';
 import ArcGISPanel from '@/components/ArcGISPanel';
+import HudOverlay from '@/components/HudOverlay';
 const OsirisMap = dynamic(() => import('@/components/OsirisMap'), { ssr: false });
 const LayerPanel = dynamic(() => import('@/components/LayerPanel'));
 const SpaceCam = dynamic(() => import('@/components/SpaceCam'), { ssr: false });
@@ -1225,6 +1226,21 @@ export default function Dashboard() {
           aircraftAirports={aircraftAirports}
         />
       </ErrorBoundary>
+
+      {/* ── HUD OVERLAY — sci-fi instrument layer, purely decorative/informational,
+          sits above the map and below interactive panels, never captures clicks ── */}
+      <HudOverlay
+        zoom={mapView.zoom}
+        centerLat={mapCenter?.lat ?? mapView.latitude}
+        centerLng={mapCenter?.lng ?? 0}
+        activeLayerCount={Object.values(activeLayers).filter(Boolean).length}
+        totalLayerCount={Object.keys(activeLayers).length}
+        backendStatus={backendStatus}
+        mapProjection={mapProjection}
+        mapStyle={mapStyle}
+        pulseKey={flyToLocation?.ts ?? 0}
+        isMobile={isMobile}
+      />
 
       {/* ── DIRECTIONS — opens beside the right-hand tool rail ── */}
       <div
