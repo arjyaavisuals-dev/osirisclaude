@@ -87,6 +87,11 @@ export default function NewsChatPanel({ data, isMobile = false, onClose }: NewsC
 
   return (
     <div className={`glass-panel flex flex-col pointer-events-auto overflow-hidden ${isMobile ? 'h-full' : 'h-[560px] max-h-[75vh]'}`}>
+      {/* Brand — Athens logo, centered */}
+      <div className="flex items-center justify-center pt-3 pb-1 shrink-0">
+        <img src="/athens-logo-white.png" alt="Athens" className="h-5 w-auto opacity-90" />
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2.5 border-b border-[var(--border-primary)] bg-black/30 shrink-0">
         <div className="flex items-center gap-2">
